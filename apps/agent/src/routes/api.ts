@@ -5,6 +5,7 @@ import { basePrompt as nodeBasePrompt } from "../default/node.js";
 import { basePrompt as reactBasePrompt } from "../default/react.js";
 import { basePrompt as nextBasePrompt } from "../default/next.js";
 import fs from "fs/promises";
+import path from "path";
 import { Groq } from "groq-sdk";
 
 const router = Router();
@@ -32,7 +33,7 @@ router.post("/template", async (req, res) => {
     res.json({
       prompts: [
         BASE_PROMPT,
-        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
+        `${reactBasePrompt}`,
       ],
       uiPrompts: [reactBasePrompt],
     });
@@ -59,14 +60,39 @@ router.post("/template", async (req, res) => {
   res.status(403).json({ message: "You cant access this" });
 });
 
+// Helper to extract file/folder structure from artifact string
+function extractFileStructure(artifact: string) {
+  // Simple regex to match filePath in <boltAction type="file" filePath="...">
+  const fileRegex = /filePath=\\?"([^"]+)\\?"/g;
+  const files = [];
+  let match;
+  while ((match = fileRegex.exec(artifact)) !== null) {
+    files.push(match[1]);
+  }
+  // Build a tree structure (optional, for clarity)
+  return files.map(f => `- ${f}`).join("\n");
+}
+
 router.post("/chat", async (req, res) => {
   const messages = req.body.messages;
   const systemPrompt = getSystemPrompt();
+
+  // Find the artifact in the messages
+  let artifactMsgIdx = messages.findIndex((m: any) => m.content && m.content.includes('<boltArtifact'));
+  let artifact = artifactMsgIdx !== -1 ? messages[artifactMsgIdx].content : '';
+  let fileStructure = artifact ? extractFileStructure(artifact) : '';
+
+  // Enhanced system prompt for full production-ready app
+  const enhancedSystemPrompt = `You are a world-class React developer.\nGiven the project structure below, generate a complete, production-ready React + TypeScript + Tailwind CSS app for the following user request.\n- Add any folders and files needed for a real production app (such as components/, utils/, etc.), even if they are not present in the structure.\n- Use best practices for file structure and code organization.\n- Output all code in a multi-file format, using code blocks with file paths (e.g., \u0060\u0060\u0060src/components/Navbar.tsx).\n- Do not include explanations, only code.\n- The design must be beautiful, modern, mobile-responsive, and accessible.\n- Use Lucide React for icons and Unsplash for images where appropriate.\n\nProject structure:\n${fileStructure}\n\nUser request: ${messages[messages.length-1]?.content || ''}`;
+
   const response = await groq.chat.completions.create({
     model: "llama3-70b-8192",
     temperature: 0,
-    max_tokens: 1024,
-    messages: [...messages, { role: "system", content: systemPrompt }],
+    max_tokens: 8192,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "system", content: enhancedSystemPrompt }
+    ],
   });
   res.json({
     response: response.choices[0]?.message?.content?.trim(),
@@ -90,7 +116,7 @@ router.get("/templates", (req, res) => {
       }
     ]
   });
-});
+}); 
 
 // Helper function to determine template from user input
 async function determineTemplate(userInput: string): Promise<string> {
