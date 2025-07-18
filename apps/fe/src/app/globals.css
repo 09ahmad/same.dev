@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 15% 10%; /* deep navy */
+    --foreground: 0 0% 98%; /* white */
+    --card: 230 15% 14%; /* slightly lighter navy */
+    --card-foreground: 0 0% 98%; /* white */
+    --popover: 230 15% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 220 100% 60%; /* bold blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 48 100% 50%; /* bolt yellow */
+    --secondary-foreground: 230 15% 10%;
+    --muted: 230 10% 20%; /* muted navy */
+    --muted-foreground: 220 10% 70%;
+    --accent: 48 100% 50%; /* bolt yellow accent */
+    --accent-foreground: 230 15% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 25%;
+    --input: 220 20% 25%;
+    --ring: 220 100% 60%;
+    --chart-1: 220 100% 60%;
+    --chart-2: 48 100% 50%;
+    --chart-3: 0 0% 98%;
+    --chart-4: 230 10% 20%;
+    --chart-5: 0 84% 60%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 230 15% 10%;
+    --foreground: 0 0% 98%;
+    --card: 230 15% 14%;
+    --card-foreground: 0 0% 98%;
+    --popover: 230 15% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 220 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 48 100% 50%;
+    --secondary-foreground: 230 15% 10%;
+    --muted: 230 10% 20%;
+    --muted-foreground: 220 10% 70%;
+    --accent: 48 100% 50%;
+    --accent-foreground: 230 15% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 25%;
+    --input: 220 20% 25%;
+    --ring: 220 100% 60%;
+    --chart-1: 220 100% 60%;
+    --chart-2: 48 100% 50%;
+    --chart-3: 0 0% 98%;
+    --chart-4: 230 10% 20%;
+    --chart-5: 0 84% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-gradient-to-br from-background via-secondary to-muted;
+  }
+}
