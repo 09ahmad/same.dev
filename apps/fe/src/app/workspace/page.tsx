@@ -12,7 +12,7 @@ import { BACKEND_URL } from '@/lib/config';
 import axios from 'axios';
 import { parseXml } from '@/lib/parser/steps';
 import { useWebContainer } from '@/lib/hooks/useWebContainer';
-
+import JSZip from 'jszip';
 
 
 export default function Workspace() {
@@ -184,6 +184,35 @@ useEffect(()=>{
   init()
 },[])
 
+  // Helper to recursively add files/folders to zip
+  const addFilesToZip = (zip: JSZip, items: FileItem[], parentPath = '') => {
+    items.forEach(item => {
+      const fullPath = parentPath ? `${parentPath}/${item.name}` : item.name;
+      if (item.type === 'file') {
+        zip.file(fullPath, item.content || '');
+      } else if (item.type === 'folder' && item.children) {
+        addFilesToZip(zip.folder(fullPath)!, item.children, fullPath);
+      }
+    });
+  };
+
+  // Download handler
+  const handleDownload = async () => {
+    const zip = new JSZip();
+    addFilesToZip(zip, files);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project.zip';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  };
+
 
 return (
   <div className="relative min-h-screen flex flex-col md:flex-row bg-background">
@@ -233,7 +262,16 @@ return (
           >
             Preview
           </button>
-          {/* Removed expand/collapse icon */}
+          {/* Download Button */}
+          {activeTab === 'code' && (
+            <button
+              className="ml-auto px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors border border-border"
+              onClick={handleDownload}
+              type="button"
+            >
+              Download All
+            </button>
+          )}
         </div>
         <div className="flex-1 flex min-h-[350px]">
           {activeTab === 'code' && (

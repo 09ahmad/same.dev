@@ -5,9 +5,9 @@ import { basePrompt as nodeBasePrompt } from "../default/node.js";
 import { basePrompt as reactBasePrompt } from "../default/react.js";
 import { basePrompt as nextBasePrompt } from "../default/next.js";
 import fs from "fs/promises";
-import path from "path";
 import { Groq } from "groq-sdk";
-
+import dotenv from "dotenv"
+dotenv.config()
 const router = Router();
 const groq = new Groq();
 
