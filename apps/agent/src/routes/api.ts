@@ -5,99 +5,123 @@ import { basePrompt as nodeBasePrompt } from "../default/node.js";
 import { basePrompt as reactBasePrompt } from "../default/react.js";
 import { basePrompt as nextBasePrompt } from "../default/next.js";
 import fs from "fs/promises";
-import { Groq } from "groq-sdk";
-import dotenv from "dotenv"
-dotenv.config()
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 const router = Router();
-const groq = new Groq();
 
-router.post("/template", async (req, res) => {
-  const prompt = req.body.prompt;
-  const response = await groq.chat.completions.create({
-    model: "llama3-70b-8192",
-    temperature: 0,
-    max_completion_tokens: 1024,
-    stop: null,
-    messages: [
-      { role: "user", content: prompt },
-      {
-        role: "system",
-        content:
-          "Return either node or react or next based on what you think this project should be .Only return a single word either 'node' or 'react' or 'next'. Do not return anything extra",
+// Initialize Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+// Helper function to call Gemini API
+async function callGemini(messages: { role: string; content: string }[], temperature = 0) {
+  try {
+    // Convert messages to Gemini format
+    let prompt = "";
+    
+    // Handle system messages and user messages
+    const systemMessages = messages.filter(m => m.role === "system");
+    const userMessages = messages.filter(m => m.role === "user");
+    
+    // Combine system messages as context
+    if (systemMessages.length > 0) {
+      prompt += systemMessages.map(m => m.content).join("\n\n") + "\n\n";
+    }
+    
+    // Add user messages
+    if (userMessages.length > 0) {
+      prompt += userMessages.map(m => m.content).join("\n\n");
+    }
+
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: temperature,
+        maxOutputTokens: 8192,
       },
-    ],
-  });
-  const answer = response.choices[0]?.message?.content?.trim();
+    });
 
-  if (answer == "react") {
-    res.json({
-      prompts: [
-        BASE_PROMPT,
-        `${reactBasePrompt}`,
-      ],
-      uiPrompts: [reactBasePrompt],
-    });
-    return;
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("Gemini API error:", error);
+    throw error;
   }
-  if (answer === "node") {
-    res.json({
-      prompts: [
-        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nodeBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
-      ],
-      uiPrompts: [nodeBasePrompt],
-    });
-    return;
-  }
-   if (answer === "next") {
-    res.json({
-      prompts: [
-        `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nextBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
-      ],
-      uiPrompts: [nextBasePrompt],
-    });
-    return;
-  }
-  res.status(403).json({ message: "You cant access this" });
-});
-
-// Helper to extract file/folder structure from artifact string
-function extractFileStructure(artifact: string) {
-  // Simple regex to match filePath in <boltAction type="file" filePath="...">
-  const fileRegex = /filePath=\\?"([^"]+)\\?"/g;
-  const files = [];
-  let match;
-  while ((match = fileRegex.exec(artifact)) !== null) {
-    files.push(match[1]);
-  }
-  // Build a tree structure (optional, for clarity)
-  return files.map(f => `- ${f}`).join("\n");
 }
 
-router.post("/chat", async (req, res) => {
-  const messages = req.body.messages;
-  const systemPrompt = getSystemPrompt();
-
-  // Find the artifact in the messages
-  let artifactMsgIdx = messages.findIndex((m: any) => m.content && m.content.includes('<boltArtifact'));
-  let artifact = artifactMsgIdx !== -1 ? messages[artifactMsgIdx].content : '';
-  let fileStructure = artifact ? extractFileStructure(artifact) : '';
-
-  // Enhanced system prompt for full production-ready app
-  const enhancedSystemPrompt = `You are a world-class React developer.\nGiven the project structure below, generate a complete, production-ready React + TypeScript + Tailwind CSS app for the following user request.\n- Add any folders and files needed for a real production app (such as components/, utils/, etc.), even if they are not present in the structure.\n- Use best practices for file structure and code organization.\n- Output all code in a multi-file format, using code blocks with file paths (e.g., \u0060\u0060\u0060src/components/Navbar.tsx).\n- Do not include explanations, only code.\n- The design must be beautiful, modern, mobile-responsive, and accessible.\n- Use Lucide React for icons and Unsplash for images where appropriate.\n\nProject structure:\n${fileStructure}\n\nUser request: ${messages[messages.length-1]?.content || ''}`;
-
-  const response = await groq.chat.completions.create({
-    model: "llama3-70b-8192",
-    temperature: 0,
-    max_tokens: 8192,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "system", content: enhancedSystemPrompt }
-    ],
-  });
-  res.json({
-    response: response.choices[0]?.message?.content?.trim(),
-  });
+router.post("/template", async (req, res) => {
+    try {
+        const prompt = req.body.prompt;
+        
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
+        const systemInstruction = "Return either node or react based on what do you think this project should be. Only return a single word either 'node' or 'react'. Do not return anything extra";
+        
+        const fullPrompt = `${systemInstruction}\n\nUser request: ${prompt}`;
+        
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        const answer = response.text().toLowerCase().trim();
+        
+        if (answer === "react") {
+            res.json({
+                prompts: [BASE_PROMPT, `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                uiPrompts: [reactBasePrompt]
+            });
+            return;
+        }
+        
+        if (answer === "node") {
+            res.json({
+                prompts: [`Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nodeBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`],
+                uiPrompts: [nodeBasePrompt]
+            });
+            return;
+        }
+        
+        res.status(403).json({ message: "You can't access this" });
+    } catch (error) {
+        console.error("Error in /template:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
+
+router.post("/chat", async (req, res) => {
+    try {
+        const messages = req.body.messages;
+        
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
+        // Convert messages format for Gemini
+        // Gemini expects a single prompt, so we need to format the conversation
+        let conversationText = getSystemPrompt() + "\n\n";
+        
+        messages.forEach((message: { role: string; content: string }) => {
+            if (message.role === 'user') {
+                conversationText += `Human: ${message.content}\n\n`;
+            } else if (message.role === 'assistant') {
+                conversationText += `Assistant: ${message.content}\n\n`;
+            }
+        });
+        
+        // Add final prompt for the assistant to respond
+        conversationText += "Assistant: ";
+        
+        const result = await model.generateContent(conversationText);
+        const response = await result.response;
+        
+        res.json({
+            response: response.text()
+        });
+    } catch (error) {
+        console.error("Error in /chat:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 
 // Get available templates
 router.get("/templates", (req, res) => {
@@ -122,12 +146,8 @@ router.get("/templates", (req, res) => {
 async function determineTemplate(userInput: string): Promise<string> {
   if (!userInput) return "react"; // Default to React if no input
   
-  const response = await groq.chat.completions.create({
-    model: "llama3-70b-8192",
-    temperature: 0,
-    max_completion_tokens: 10,
-    stop: null,
-    messages: [
+  try {
+    const response = await callGemini([
       { 
         role: "user", 
         content: `Based on this user request, determine if they want React or Next.js. Only return 'react' or 'next'. User request: ${userInput}` 
@@ -136,11 +156,14 @@ async function determineTemplate(userInput: string): Promise<string> {
         role: "system",
         content: "Return either 'react' or 'next' based on the user's request. If they mention Next.js, return 'next'. Otherwise, return 'react' as default. Only return a single word."
       },
-    ],
-  });
-  
-  const answer = response.choices[0]?.message?.content?.trim().toLowerCase();
-  return answer === "next" ? "next" : "react"; // Default to React
+    ]);
+    
+    const answer = response.trim().toLowerCase();
+    return answer === "next" ? "next" : "react"; // Default to React
+  } catch (error) {
+    console.error("Error determining template:", error);
+    return "react"; // Default fallback
+  }
 }
 
 // Helper function to get template prompt
@@ -224,6 +247,7 @@ router.post("/clone-website", async (req, res) => {
     
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error("Clone website error:", message);
     res.status(500).json({ error: message });
   }
 });
