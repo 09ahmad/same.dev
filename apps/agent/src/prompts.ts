@@ -284,58 +284,88 @@ export const CONTINUE_PROMPT = stripIndents`
   Continue your prior response. IMPORTANT: Immediately begin from where you left off without any interruptions.
   Do not repeat any content, including artifact and action tags.
 `;
-
 export function buildScrapedPrompt(url: string, scrapedData: any, screenshotBase64s: string[]): string {
   let prompt = `Create a complete, production-ready website clone of: ${url}\n`;
   
-  // Add specific context for known websites
-  if (url.includes('100xdevs.com')) {
-    prompt += `\nThis is 100x Devs - a coding bootcamp website. You need to create a modern, professional clone with:\n`;
-    prompt += `- Hero section with compelling course information and call-to-action\n`;
-    prompt += `- Detailed course section with curriculum, pricing, and features\n`;
-    prompt += `- Student testimonials section with real testimonials\n`;
-    prompt += `- Comprehensive FAQ section\n`;
-    prompt += `- Modern, clean design with proper typography and spacing\n`;
-    prompt += `- Responsive layout that works on all devices\n`;
-    prompt += `- Professional color scheme and branding\n`;
-    prompt += `- Smooth navigation and user experience\n`;
-  }
+  // General website analysis and requirements
+  prompt += `\nWebsite Analysis and Requirements:\n`;
   
-  // Summarize scraped data instead of sending full JSON
+  // Summarize scraped data
   if (scrapedData && scrapedData.length > 0) {
-    prompt += `\nWebsite Analysis:\n`;
     prompt += `- Total pages found: ${scrapedData.length}\n`;
     
     // Collect unique images across all pages (limit to first 5 pages for token efficiency)
     const limitedData = scrapedData.slice(0, 5);
     const allImages = new Set<string>();
     const pageUrls = limitedData.map((page: any) => page.url);
-    
-    limitedData.forEach((page: any) => {
-      if (page.images) {
-        page.images.slice(0, 5).forEach((img: string) => allImages.add(img)); // Limit images per page
+    const pageTitles = limitedData.map((page: any) => {
+      try {
+        const urlObj = new URL(page.url);
+        return urlObj.pathname.split('/').filter(Boolean).join(' > ') || 'Home';
+      } catch {
+        return page.url;
       }
     });
     
-    prompt += `- Main sections: ${pageUrls.join(', ')}\n`;
-    prompt += `- Key images to include: ${Array.from(allImages).slice(0, 8).join(', ')}\n`;
+    limitedData.forEach((page: any) => {
+      if (page.images) {
+        page.images.slice(0, 5).forEach((img: string) => allImages.add(img));
+      }
+    });
     
-    // Add specific instructions for better cloning
-    prompt += `\nRequirements for the complete website:\n`;
-    prompt += `- Create a fully functional React app that accurately represents the original website\n`;
-    prompt += `- Include proper navigation between all sections (hero, course, testimonials, faq)\n`;
-    prompt += `- Use modern React patterns (hooks, functional components, proper state management)\n`;
-    prompt += `- Implement responsive design with Tailwind CSS\n`;
-    prompt += `- Include all necessary dependencies in package.json\n`;
-    prompt += `- Create proper routing for different sections\n`;
-    prompt += `- Use actual images from the scraped URLs where possible\n`;
-    prompt += `- Make it production-ready with proper styling, layout, and interactions\n`;
-    prompt += `- Include proper meta tags and SEO optimization\n`;
-    prompt += `- Add smooth scrolling, animations, and modern UI interactions\n`;
-    prompt += `- Ensure the design is professional and matches the original brand\n`;
-    prompt += `- Include proper error handling and loading states\n`;
+    prompt += `- Main sections: ${pageTitles.join(', ')}\n`;
+    prompt += `- Key images found: ${Array.from(allImages).slice(0, 8).join(', ')}\n`;
   }
   
-  prompt += `\nCreate a complete, beautiful, and functional website clone that users can immediately run and use. The website should look professional and be fully functional.`;
+  // General cloning requirements for any website
+  prompt += `\nRequirements for the complete website clone:\n`;
+  prompt += `- Create a fully functional React/Next.js app that accurately represents the original website\n`;
+  prompt += `- Maintain the same visual design, layout, and user experience as the original\n`;
+  prompt += `- Include all key sections and functionality found in the original\n`;
+  prompt += `- Implement proper navigation matching the original site structure\n`;
+  prompt += `- Use modern React patterns (hooks, functional components, proper state management)\n`;
+  prompt += `- Implement responsive design with Tailwind CSS that works on all devices\n`;
+  prompt += `- Include all necessary dependencies in package.json\n`;
+  prompt += `- Create proper routing for different sections/pages\n`;
+  prompt += `- Use actual images from the scraped URLs where possible\n`;
+  prompt += `- Make it production-ready with proper styling, layout, and interactions\n`;
+  prompt += `- Include proper meta tags and SEO optimization\n`;
+  prompt += `- Add smooth scrolling, animations, and modern UI interactions where appropriate\n`;
+  prompt += `- Ensure the design matches the original brand's look and feel\n`;
+  prompt += `- Include proper error handling and loading states\n`;
+  prompt += `- Implement any key interactive elements found in the original (forms, modals, etc)\n`;
+  
+  // Additional instructions based on scraped content
+  if (scrapedData && scrapedData.length > 0) {
+    const hasForms = scrapedData.some((page:any) => 
+      page.dynamicContent?.some((content:any) => content.tag === 'form') || 
+      page.html?.includes('<form')
+    );
+    const hasEcommerce = scrapedData.some((page:any) => 
+      page.url.includes('/cart') || 
+      page.url.includes('/product') ||
+      page.html?.includes('$') ||
+      page.html?.includes('price')
+    );
+    const hasBlog = scrapedData.some((page:any) => 
+      page.url.includes('/blog') || 
+      page.url.includes('/article') ||
+      page.html?.includes('post-date')
+    );
+    
+    if (hasForms) {
+      prompt += `- Implement all form functionality with proper validation\n`;
+    }
+    if (hasEcommerce) {
+      prompt += `- Include e-commerce functionality (product listings, cart, checkout flow)\n`;
+    }
+    if (hasBlog) {
+      prompt += `- Implement blog/article system with proper content display\n`;
+    }
+  }
+  
+  prompt += `\nCreate a complete, beautiful, and functional website clone that users can immediately run and use. `;
+  prompt += `The website should be production-ready and closely match the original in both design and functionality.`;
+  
   return prompt;
 }

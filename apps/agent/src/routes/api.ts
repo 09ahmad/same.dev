@@ -14,7 +14,7 @@ const router = Router();
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
 // Helper function to call Gemini API
 async function callGemini(messages: { role: string; content: string }[], temperature = 0) {
@@ -176,8 +176,7 @@ function getTemplatePrompt(template: string): string {
       return reactBasePrompt;
   }
 }
-
-router.post("/clone-website", async (req, res) => {
+router.post("/clone-template", async (req, res) => {
   const { url, prompt: userPrompt } = req.body;
   
   try {
@@ -187,6 +186,7 @@ router.post("/clone-website", async (req, res) => {
     
     let finalPrompt = "";
     let scrapedData = null;
+    let imageLinks:any = []; // New: To store all image links
     
     // Step 2: Handle scraping if URL is provided
     if (url) {
@@ -195,23 +195,24 @@ router.post("/clone-website", async (req, res) => {
       const scrapedJson = await fs.readFile(jsonPath, "utf-8");
       scrapedData = JSON.parse(scrapedJson);
       
+      // Collect all unique image links
+      imageLinks = scrapedData.reduce((acc:any, page:any) => {
+        if (page.images && page.images.length) {
+          return [...acc, ...page.images];
+        }
+        return acc;
+      }, []);
+      
+      // Remove duplicates
+      imageLinks = [...new Set(imageLinks)];
+      
       // Check if scraped data is too large
       if (scrapedData.length > 10) {
         console.warn(`Large website detected: ${scrapedData.length} pages. Limiting to first 10 pages for token efficiency.`);
         scrapedData = scrapedData.slice(0, 10);
       }
       
-      // Skip screenshot processing to save tokens - base64 data is too large
-      const screenshotBase64s: string[] = [];
-      
-      // Add more context about the website being cloned
-      console.log(`Cloning website: ${url}`);
-      console.log(`Pages found: ${scrapedData.length}`);
-      scrapedData.forEach((page: any, index: number) => {
-        console.log(`Page ${index + 1}: ${page.url} (${page.images?.length || 0} images)`);
-      });
-      
-      finalPrompt = buildScrapedPrompt(url, scrapedData, screenshotBase64s);
+      finalPrompt = buildScrapedPrompt(url, scrapedData, []);
     } else if (userPrompt) {
       finalPrompt = userPrompt;
     } else {
@@ -227,13 +228,13 @@ router.post("/clone-website", async (req, res) => {
       prompts = [
         BASE_PROMPT,
         `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${reactBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
-        finalPrompt // Add the scraping prompt here
+        finalPrompt
       ];
       uiPrompts = [reactBasePrompt];
     } else if (template === "next") {
       prompts = [
         `Here is an artifact that contains all files of the project visible to you.\nConsider the contents of ALL files in the project.\n\n${nextBasePrompt}\n\nHere is a list of files that exist on the file system but are not being shown to you:\n\n  - .gitignore\n  - package-lock.json\n`,
-        finalPrompt // Add the scraping prompt here
+        finalPrompt
       ];
       uiPrompts = [nextBasePrompt];
     }
@@ -242,7 +243,16 @@ router.post("/clone-website", async (req, res) => {
       prompts: prompts,
       uiPrompts: uiPrompts,
       template: template,
-      scrapedData: scrapedData ? { url, pageCount: scrapedData.length } : null
+      scrapedData: {
+        url,
+        pageCount: scrapedData ? scrapedData.length : 0,
+        imageLinks, // Include all image links in response
+        pages: scrapedData ? scrapedData.map((page:any) => ({
+          url: page.url,
+          images: page.images,
+          dynamicContent: page.dynamicContent
+        })) : []
+      }
     });
     
   } catch (err) {
@@ -250,6 +260,104 @@ router.post("/clone-website", async (req, res) => {
     console.error("Clone website error:", message);
     res.status(500).json({ error: message });
   }
+});
+
+router.post("/clone-chat", async (req, res) => {
+    try {
+        const {
+            prompts,
+            uiPrompts,
+            template,
+            scrapedData
+        } = req.body;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+
+        // Convert messages format for Gemini using system prompt
+        let conversationText = getSystemPrompt() + "\n\n";
+        
+        // Add the website clone context first
+        conversationText += "Website Clone Project Context:\n";
+        conversationText += `- Template: ${template}\n`;
+        conversationText += `- Original URL: ${scrapedData.url}\n`;
+        conversationText += `- Pages to clone: ${scrapedData.pages.length}\n\n`;
+        
+        // Add all prompts as user messages
+        prompts.forEach((prompt: string) => {
+            conversationText += `User: ${prompt}\n\n`;
+        });
+        
+        // Add UI prompts as system messages
+        uiPrompts.forEach((uiPrompt: string) => {
+            conversationText += `System: UI Configuration - ${uiPrompt}\n\n`;
+        });
+        
+        // Add scraped data summary
+        conversationText += "System: Scraped Data Summary:\n";
+        if (scrapedData.imageLinks.length > 0) {
+            conversationText += `- Key Images: ${scrapedData.imageLinks.slice(0, 5).join(', ')}\n`;
+        }
+        if (scrapedData.pages.length > 0) {
+            scrapedData.pages.slice(0, 3).forEach((page: any, index: number) => {
+                conversationText += `- Page ${index + 1}: ${page.url} (${page.images?.length || 0} images)\n`;
+            });
+        }
+        conversationText += "\n";
+        
+        // Final instruction
+        conversationText += "User: Generate complete code implementation for this website clone using the specified template. " +
+                          "Include all necessary files and ensure production-ready quality. " +
+                          "Respond with a properly formatted <boltArtifact> containing the full implementation.\n\n";
+        
+        conversationText += "Assistant: ";
+
+        const result = await model.generateContent({
+            contents: [{ 
+                role: "user", 
+                parts: [{ text: conversationText }] 
+            }],
+            generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 8192,
+            },
+        });
+
+        const response = await result.response;
+        const generatedText = response.text();
+
+        // Parse the response for files if in boltArtifact format
+        let files:any = [];
+        const artifactMatch = generatedText.match(/<boltArtifact[^>]*>([\s\S]*?)<\/boltArtifact>/);
+        if (artifactMatch) {
+            const artifactContent:any = artifactMatch[1];
+            const fileMatches = [...artifactContent.matchAll(/<boltAction[^>]*filePath="([^"]*)"[^>]*>([\s\S]*?)<\/boltAction>/g)];
+            
+            files = fileMatches.map(match => ({
+                path: match[1],
+                content: match[2].trim()
+            }));
+        }
+
+        res.json({
+            success: true,
+            response: generatedText,
+            files: files.length > 0 ? files : undefined,
+            metadata: {
+                template,
+                originalUrl: scrapedData.url,
+                imageCount: scrapedData.imageLinks.length,
+                pageCount: scrapedData.pages.length
+            }
+        });
+
+    } catch (error) {
+        console.error("Error in /generate-code:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "Failed to generate code",
+            error: error instanceof Error ? error.message : String(error)
+        });
+    }
 });
 
 export default router;
