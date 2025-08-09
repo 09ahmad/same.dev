@@ -69,10 +69,8 @@ export default function Avatar() {
           </SheetHeader>
         </div>
         
-        {/* Spacer - grows to push button to bottom */}
         <div className="flex-1" />
         
-        {/* Bottom Section with Sign Out Button */}
         <div className="flex-shrink-0 p-4 sm:p-6 border-t bg-gray-50/50 dark:bg-gray-800/20">
           {session?.user && (
             <Button
