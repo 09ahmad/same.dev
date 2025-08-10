@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import { Providers } from "./provider";
+import NavbarWrapper from "@/components/NavbarWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +36,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <Providers>
-          <Navbar />
+          <NavbarWrapper />
           <div className="min-h-screen">{children}</div>
         </Providers>
       </body>
