@@ -22,7 +22,7 @@ export default function AuthDialog({
         <DialogHeader className="space-y-2 flex items-center">
           <DialogTitle className="text-3xl font-bold">Same.dev</DialogTitle>
           <DialogDescription className="text-base text-muted-foreground">
-            To Build Something cool Authenticate first
+            Too proceed, authenticate first
           </DialogDescription>
         </DialogHeader>
 

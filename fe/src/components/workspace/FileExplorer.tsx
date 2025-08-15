@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Folder, File as FileIcon } from 'lucide-react';
 import { FileItem } from '@/lib/types';
+import { Skeleton } from '../ui/skeleton';
 
 export type FileNode = {
   type: 'file';
@@ -16,15 +17,30 @@ interface FileExplorerProps {
   selected: string|FileItem;
   onFileSelect: (file: FileItem) => void;
   level?: number;
+  loading:boolean
 }
 
-export function FileExplorer({ tree, selected, onFileSelect, level = 0 }: FileExplorerProps) {
+export function FileExplorer({ tree, selected, onFileSelect, level = 0, loading}: FileExplorerProps) {
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
 
   const toggleFolder = useCallback((name: string) => {
     setOpenFolders(prev => ({ ...prev, [name]: !prev[name] }));
   }, []);
-
+  if(loading){
+    return(
+      <div className='flex items-center space-x-4'>
+        <div className='space-y-4'>
+          <Skeleton className='h-6 w-[200px] ' />
+          <Skeleton className='h-6 w-[200px]' />
+          <Skeleton className='h-6 w-[200px]' />
+          <Skeleton className='h-6 w-[200px]' />
+          <Skeleton className='h-6 w-[200px]' />
+          <Skeleton className='h-6 w-[200px]' />
+          <Skeleton className='h-6 w-[200px]' />
+        </div>
+    </div>
+  )
+}
   return (
     <ul className={level === 0 ? 'space-y-1' : 'pl-4 space-y-1'}>
       {tree.map((node, idx) => {
@@ -41,7 +57,7 @@ export function FileExplorer({ tree, selected, onFileSelect, level = 0 }: FileEx
                 {node.name}
               </div>
               {isOpen && node.children && (
-                <FileExplorer tree={node.children} selected={selected} onFileSelect={onFileSelect} level={level + 1} />
+                <FileExplorer tree={node.children} selected={selected} onFileSelect={onFileSelect} level={level + 1} loading={loading}/>
               )}
             </li>
           );
