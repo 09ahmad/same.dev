@@ -27,7 +27,7 @@ export default function Workspace() {
   const { webcontainer, isLoading: webContainerLoading, error: webContainerError } = useWebContainer();
 
   const [selectedFile, setSelectedFile] = useState<FileItem | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview');
   const [currentStep, setCurrentStep] = useState(0);
 
 
