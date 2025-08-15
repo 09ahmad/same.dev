@@ -27,8 +27,9 @@ export default function Workspace() {
   const { webcontainer, isLoading: webContainerLoading, error: webContainerError } = useWebContainer();
 
   const [selectedFile, setSelectedFile] = useState<FileItem | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview');
   const [currentStep, setCurrentStep] = useState(0);
+
 
   // Process steps and update files (fixed path handling)
   useEffect(() => {
@@ -260,17 +261,18 @@ export default function Workspace() {
   return (
     <div className="relative min-h-screen flex flex-col md:flex-row bg-background">
 
-      {(webContainerLoading || loading || !templateSet) && (
+
+     {(webContainerLoading ) && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-50">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
             <p className="text-sm text-muted-foreground">
-              {webContainerLoading ? 'Initializing WebContainer...' : 
-               !templateSet ? 'Setting up template...' : 'Processing...'}
+              Initializing WebContainer...
             </p>
           </div>
         </div>
       )}
+
       
       {/* Show error state for WebContainer */}
       {webContainerError && (
@@ -283,7 +285,7 @@ export default function Workspace() {
       )}
       
       {/* Steps Sidebar (always visible) */}
-      <StepsSidebar steps={steps} currentStep={currentStep} setCurrentStep={setCurrentStep}>
+      <StepsSidebar steps={steps} currentStep={currentStep} setCurrentStep={setCurrentStep} loading={loading}>
         <LLMOutput>
           <div className="absolute left-0 bottom-4 w-full px-4">
             {!(loading || !templateSet) && !webContainerLoading && (
@@ -342,7 +344,7 @@ export default function Workspace() {
               <div className="flex flex-1 gap-0 bg-card rounded-xl border border-border shadow-lg overflow-hidden">
                 {/* File Explorer Sidebar (always visible in code tab) */}
                 <aside className="w-56 bg-background border-r border-border p-4 overflow-y-auto">
-                  <FileExplorer tree={files} selected={selectedFile || ''} onFileSelect={setSelectedFile} />
+                  <FileExplorer tree={files} selected={selectedFile || ''} onFileSelect={setSelectedFile} loading={loading} />
                 </aside>
                 {/* Monaco Editor or placeholder */}
                 <div className="flex-1">
