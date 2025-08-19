@@ -18,7 +18,8 @@
   },
   "packageManager": "bun@1.2.11",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "agent",
+    "history"
   ]
 }
