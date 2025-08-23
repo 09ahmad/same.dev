@@ -21,20 +21,38 @@ model Conversation {
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String?   @default("New Conversation")
+  prompt    String?   
+  template  String?   
+  type      String?   @default("chat") 
   messages  Messages[]
+  files     WorkspaceFile[] 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
+  
   @@index([userId])
+  @@index([type])
 }
 
 model Messages {
   id             String       @id @default(uuid())
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String // 'user' or 'assistant'
+  role           String 
   content        String
   createdAt      DateTime     @default(now())
+  
+  @@index([conversationId])
+}
 
+model WorkspaceFile {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  name           String       
+  path           String       
+  content        String       
+  type           String       
+  createdAt      DateTime     @default(now())
+  
   @@index([conversationId])
 }

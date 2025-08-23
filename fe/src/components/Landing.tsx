@@ -62,7 +62,7 @@ export default function Landing() {
           {/* Prompt Input Form */}
           <Card className="mb-8 shadow-glow border-primary/20">
             <CardContent className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit}  className="space-y-6">
                 <div>
                   <label
                     htmlFor="prompt"
