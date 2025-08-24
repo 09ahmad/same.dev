@@ -1,10 +1,17 @@
 // components/workspace/WorkspaceSidebar.tsx
 import React, { useState, useEffect } from 'react';
 import { Code2, Plus, Trash2, FileText, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { BACKEND_URL2 } from '@/lib/config';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 interface WorkspaceConversation {
   id: string;
@@ -25,7 +32,6 @@ interface WorkspaceSidebarProps {
   onConversationSelect: (conversationId: string) => void;
   onNewWorkspace: () => void;
   onDeleteConversation: (conversationId: string) => void;
-  className?: string;
 }
 
 export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
@@ -34,7 +40,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onConversationSelect,
   onNewWorkspace,
   onDeleteConversation,
-  className = ""
 }) => {
   const [conversations, setConversations] = useState<WorkspaceConversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +49,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   const fetchConversations = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/workspace/history/${userId}`);
+      const response = await fetch(`${BACKEND_URL2}/api/workspace/history/${userId}`);
       if (!response.ok) throw new Error('Failed to fetch conversations');
       
       const data = await response.json();
@@ -68,7 +73,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     event.stopPropagation();
     
     try {
-      const response = await fetch(`/api/conversation/${conversationId}`, {
+      const response = await fetch(`${BACKEND_URL2}/api/conversation/${conversationId}`, {
         method: 'DELETE'
       });
       
@@ -94,7 +99,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     return date.toLocaleDateString();
   };
 
-  const truncateTitle = (title: string, maxLength = 35) => {
+  const truncateTitle = (title: string, maxLength = 30) => {
     return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
   };
 
@@ -113,124 +118,132 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
   if (loading) {
     return (
-      <div className={`w-80 bg-white border-r border-gray-200 flex flex-col ${className}`}>
-        <div className="p-4 border-b border-gray-200">
-          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-        <div className="flex-1 p-4 space-y-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-20 bg-gray-100 rounded animate-pulse"></div>
-          ))}
-        </div>
-      </div>
+      <Sidebar>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="p-4 space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-16 bg-gray-100 rounded animate-pulse"></div>
+                ))}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
     );
   }
 
   return (
-    <div className={`w-80 bg-white border-r border-gray-200 flex flex-col ${className}`}>
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <Button 
-          onClick={onNewWorkspace}
-          className="w-full justify-start gap-2 hover:bg-gray-50"
-          variant="outline"
-        >
-          <Plus className="w-4 h-4" />
-          New Workspace
-        </Button>
-      </div>
+    <Sidebar>
+      <SidebarContent>
+        {/* New Workspace Button */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={onNewWorkspace} className="w-full">
+                  <Plus className="w-4 h-4" />
+                  <span>New Workspace</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-      {/* Error Alert */}
-      {error && (
-        <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
+        {/* Error Display */}
+        {error && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="mx-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-      {/* Conversations List */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-3">
-          {conversations.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <Code2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm font-medium">No workspaces yet</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Create your first workspace to get started
-              </p>
-            </div>
-          ) : (
-            conversations.map((conversation) => (
-              <Card
-                key={conversation.id}
-                className={`p-3 cursor-pointer transition-all group hover:shadow-md border ${
-                  activeConversationId === conversation.id 
-                    ? 'bg-blue-50 border-blue-200 shadow-sm' 
-                    : 'hover:bg-gray-50'
-                }`}
-                onClick={() => onConversationSelect(conversation.id)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    {/* Template Badge */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm">{getTemplateIcon(conversation.template)}</span>
-                      {conversation.template && (
-                        <Badge variant="secondary" className="text-xs px-2 py-0.5">
-                          {conversation.template.toUpperCase()}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {/* Title */}
-                    <h3 className="font-medium text-sm mb-2 text-gray-900">
-                      {truncateTitle(conversation.title)}
-                    </h3>
-                    
-                    {/* Stats */}
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mb-1">
-                      <span className="flex items-center gap-1">
-                        <FileText className="w-3 h-3" />
-                        {conversation._count.files} files
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(conversation.updatedAt)}
-                      </span>
-                    </div>
-                    
-                    {/* Original Prompt Preview */}
-                    {conversation.prompt && (
-                      <p className="text-xs text-gray-400 line-clamp-2 mt-1">
-                        {conversation.prompt.substring(0, 60)}
-                        {conversation.prompt.length > 60 ? '...' : ''}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Delete Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 ml-2 p-1.5 h-auto text-gray-400 hover:text-red-500 hover:bg-red-50"
-                    onClick={(e) => handleDeleteConversation(conversation.id, e)}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+        {/* Conversations List */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Recent Workspaces</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {conversations.length === 0 ? (
+                <div className="text-center text-gray-500 py-8 px-4">
+                  <Code2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No workspaces yet</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Create your first workspace
+                  </p>
                 </div>
-              </Card>
-            ))
-          )}
-        </div>
-      </ScrollArea>
-      
-      {/* Footer Stats */}
-      {conversations.length > 0 && (
-        <div className="border-t border-gray-200 p-3 bg-gray-50">
-          <p className="text-xs text-gray-500 text-center">
-            {conversations.length} workspace{conversations.length !== 1 ? 's' : ''} total
-          </p>
-        </div>
-      )}
-    </div>
+              ) : (
+                conversations.map((conversation) => (
+                  <SidebarMenuItem key={conversation.id}>
+                    <SidebarMenuButton
+                      onClick={() => onConversationSelect(conversation.id)}
+                      isActive={activeConversationId === conversation.id}
+                      className="w-full justify-start h-auto p-3 group relative"
+                    >
+                      <div className="flex flex-col items-start w-full min-w-0">
+                        {/* Template and Title */}
+                        <div className="flex items-center gap-2 w-full mb-1">
+                          <span className="text-sm flex-shrink-0">
+                            {getTemplateIcon(conversation.template)}
+                          </span>
+                          <span className="font-medium text-sm truncate">
+                            {truncateTitle(conversation.title)}
+                          </span>
+                        </div>
+                        
+                        {/* Stats */}
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {conversation._count.files}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(conversation.updatedAt)}
+                          </span>
+                        </div>
+                        
+                        {/* Original Prompt Preview */}
+                        {conversation.prompt && (
+                          <p className="text-xs text-gray-400 line-clamp-1 mt-1 w-full">
+                            {conversation.prompt.substring(0, 40)}
+                            {conversation.prompt.length > 40 ? '...' : ''}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Delete Button */}
+                      <button
+                        className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                        onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Footer Stats */}
+        {conversations.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="px-4 py-2 text-center">
+                <p className="text-xs text-gray-500">
+                  {conversations.length} workspace{conversations.length !== 1 ? 's' : ''} total
+                </p>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+    </Sidebar>
   );
 };

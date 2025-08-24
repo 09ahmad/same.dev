@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./provider";
 import NavbarWrapper from "@/components/NavbarWrapper";
-
+import AuthenticatedLayout from "@/components/AuthenticatedLayout";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -36,8 +36,10 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <Providers>
+          <AuthenticatedLayout>
           <NavbarWrapper />
           <div className="min-h-screen">{children}</div>
+          </AuthenticatedLayout>
         </Providers>
       </body>
     </html>
