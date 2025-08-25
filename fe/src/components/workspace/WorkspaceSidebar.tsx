@@ -1,4 +1,3 @@
-// components/workspace/WorkspaceSidebar.tsx
 import React, { useState, useEffect } from 'react';
 import { Code2, Plus, Trash2, FileText, Calendar } from 'lucide-react';
 import { BACKEND_URL2 } from '@/lib/config';
