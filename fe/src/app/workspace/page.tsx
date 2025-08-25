@@ -12,10 +12,14 @@ import axios from 'axios';
 import { parseXml } from '@/lib/parser/steps';
 import { useWebContainer } from '@/lib/hooks/useWebContainer';
 import JSZip from 'jszip';
+import { useSession } from 'next-auth/react';
+import { addMessage, createWorkspaceConversation } from '@/lib/history';
+import { BACKEND_URL2 } from '@/lib/config';
 
 export default function Workspace() {
   const searchParams = useSearchParams();
   const prompt = searchParams.get('prompt') || '';
+  const existingConversationId = searchParams.get('conversationId') || '';
 
   const [steps, setSteps] = useState<Step[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -25,6 +29,9 @@ export default function Workspace() {
   const [templateSet, setTemplateSet] = useState(false);
   
   const { webcontainer, isLoading: webContainerLoading, error: webContainerError } = useWebContainer();
+  const { data: session } = useSession();
+  const userId = (session as any)?.user?.id as string | undefined;
+  const [workspaceConversationId, setWorkspaceConversationId] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<FileItem | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview');
@@ -138,12 +145,60 @@ export default function Workspace() {
   // Initialize the workspace
   async function init() {
     try {
+      // If loading an existing conversation, hydrate and skip generation
+      if (existingConversationId) {
+        const res = await fetch(`${BACKEND_URL2}/api/workspace/conversation/${existingConversationId}`);
+        if (!res.ok) throw new Error('Failed to fetch conversation');
+        const data = await res.json();
+        setWorkspaceConversationId(data.id);
+        // hydrate messages
+        const msgs = (data.messages || []).map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content as string }));
+        setLlmMessages(msgs);
+        // hydrate files
+        const serverFiles = (data.files || []) as { name: string; path: string; content: string; type: string }[];
+        // Convert flat list into tree structure for FileExplorer
+        const tree: FileItem[] = [];
+        const ensureFolder = (path: string[], idx: number, arr: FileItem[]): FileItem[] => {
+          if (idx >= path.length) return arr;
+          const name = path[idx];
+          const folderPath = path.slice(0, idx + 1).join('/');
+          let folder = arr.find(x => x.type === 'folder' && x.path === folderPath);
+          if (!folder) {
+            folder = { name, type: 'folder', path: folderPath, children: [] } as FileItem;
+            arr.push(folder);
+          }
+          return ensureFolder(path, idx + 1, folder.children!);
+        };
+        serverFiles.forEach(f => {
+          const parts = f.path.split('/');
+          const fileName = parts.pop() as string;
+          const folderArr = parts.length ? ensureFolder(parts, 0, tree) : tree;
+          const existing = folderArr.find(x => x.type === 'file' && x.path === f.path);
+          if (!existing) {
+            folderArr.push({ name: fileName, type: 'file', path: f.path, content: f.content } as FileItem);
+          }
+        });
+        setFiles(tree);
+        setTemplateSet(true);
+        return;
+      }
+
       const response = await axios.post(`${BACKEND_URL}/api/template`, {
         prompt: prompt.trim()
       });
       setTemplateSet(true);
       
       const { prompts, uiPrompts } = response.data as { prompts: string[], uiPrompts: string[] };
+
+      // Create workspace conversation for persistence
+      let createdConvId: string | null = null;
+      if (userId) {
+        const conv = await createWorkspaceConversation({ userId, title: prompt.substring(0, 50) || 'Workspace', prompt, template: 'next' });
+        createdConvId = conv.id;
+        setWorkspaceConversationId(conv.id);
+        // Seed first user message
+        await addMessage(conv.id, { role: 'user', content: prompt });
+      }
 
       // Initial steps from template
       setSteps(() => {
@@ -175,6 +230,12 @@ export default function Workspace() {
         return [...s, ...newSteps];
       });
 
+      // Store assistant response using the correct conversation id
+      const idForAssistant = createdConvId || workspaceConversationId || existingConversationId;
+      if (idForAssistant) {
+        await addMessage(idForAssistant, { role: 'assistant', content: stepsResponse.data.response });
+      }
+
       setLlmMessages([...prompts, prompt].map(content => ({
         role: "user",
         content
@@ -189,6 +250,7 @@ export default function Workspace() {
 
   useEffect(() => {
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle sending new messages
@@ -202,14 +264,26 @@ export default function Workspace() {
 
     setLoading(true);
     try {
+      // Persist user message
+      if (workspaceConversationId) {
+        await addMessage(workspaceConversationId, newMessage);
+      }
+
       const stepsResponse = await axios.post(`${BACKEND_URL}/api/chat`, {
         messages: [...llmMessages, newMessage]
       });
       
-      setLlmMessages(x => [...x, newMessage, {
-        role: "assistant",
+      const assistantMsg = {
+        role: "assistant" as const,
         content: stepsResponse.data.response
-      }]);
+      };
+
+      // Persist assistant message
+      if (workspaceConversationId) {
+        await addMessage(workspaceConversationId, assistantMsg);
+      }
+      
+      setLlmMessages(x => [...x, newMessage, assistantMsg]);
       
       setSteps(s => {
         const offset = s.length > 0 ? Math.max(...s.map(step => step.id)) : 0;
@@ -257,6 +331,36 @@ export default function Workspace() {
       URL.revokeObjectURL(url);
     }, 100);
   };
+
+  // Persist files to backend whenever they change
+  useEffect(() => {
+    const persistFiles = async () => {
+      if (!workspaceConversationId || files.length === 0) return;
+      // Flatten tree into files array
+      const flat: { name: string; path: string; content: string; type: string }[] = [];
+      const walk = (items: FileItem[]) => {
+        items.forEach(it => {
+          if (it.type === 'file') {
+            flat.push({ name: it.name, path: it.path, content: it.content || '', type: 'file' });
+          } else if (it.type === 'folder' && it.children) {
+            walk(it.children);
+          }
+        });
+      };
+      walk(files);
+      try {
+        await fetch(`${BACKEND_URL2}/api/workspace/files/${workspaceConversationId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: flat })
+        });
+      } catch (e) {
+        console.error('Failed to persist files:', e);
+      }
+    };
+    persistFiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files, workspaceConversationId]);
 
   return (
     <div className="relative min-h-screen flex flex-col md:flex-row bg-background">

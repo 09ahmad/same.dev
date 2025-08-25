@@ -44,17 +44,20 @@ export const authOptions = {
       return true;
     },
     async jwt({ token, user }:any) {
-      if (user) {
+      // Ensure token.id is set so session can expose session.user.id
+      if (user?.email) {
         const dbUser = await prismaClient.user.findUnique({
           where: { email: user.email },
         });
-        user.token = dbUser?.id;
+        if (dbUser) {
+          token.id = dbUser.id;
+        }
       }
       return token;
     },
     async session({ session, token }:any) {
-      if (token.id) {
-        session.user.id = token.id as string;
+      if (token?.id) {
+        (session.user as any).id = token.id as string;
       }
       return session;
     },
