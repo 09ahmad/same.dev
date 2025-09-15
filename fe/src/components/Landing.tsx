@@ -21,7 +21,6 @@ export default function Landing() {
     if (status === "authenticated") {
       if (!prompt.trim()) return;
       setIsBuilding(true);
-      // TODO: Implement actual building logic
       router.push(`/workspace?prompt=${encodeURIComponent(prompt)}`);
       setTimeout(() => {
         setIsBuilding(false);

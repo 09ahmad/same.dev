@@ -4,8 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun ./src/index.ts"
-  },
+  "build": "bun build ./src/index.ts --outdir dist --target bun",
+  "start": "bun run dist/index.js",
+  "dev": "bun ./src/index.ts"
+},
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@repo/db": "workspace:*"

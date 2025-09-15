@@ -34,7 +34,7 @@ export default function Workspace() {
   const [workspaceConversationId, setWorkspaceConversationId] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<FileItem | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('preview');
+  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
   const [currentStep, setCurrentStep] = useState(0);
 
 
@@ -57,7 +57,6 @@ export default function Workspace() {
           parsedPath = parsedPath.slice(1);
 
           if (!parsedPath.length) {
-            // final file
             const file = currentFileStructure.find(x => x.path === currentFolder)
             if (!file) {
               currentFileStructure.push({
@@ -70,10 +69,8 @@ export default function Workspace() {
               file.content = step.code || '';
             }
           } else {
-            // in a folder
             const folder = currentFileStructure.find(x => x.path === currentFolder)
             if (!folder) {
-              // create the folder
               currentFileStructure.push({
                 name: currentFolderName,
                 type: 'folder',
@@ -225,7 +222,7 @@ export default function Workspace() {
         const newSteps = parseXml(stepsResponse.data.response).map((x, idx) => ({
           ...x,
           id: offset + idx + 1,
-          status: 'pending' as 'pending'
+          status: 'pending' as const
         }));
         return [...s, ...newSteps];
       });
@@ -250,7 +247,6 @@ export default function Workspace() {
 
   useEffect(() => {
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle sending new messages
@@ -258,7 +254,7 @@ export default function Workspace() {
     if (!userPrompt.trim()) return;
 
     const newMessage = {
-      role: "user" as "user",
+      role: "user" as const,
       content: userPrompt
     };
 
@@ -275,7 +271,7 @@ export default function Workspace() {
       
       const assistantMsg = {
         role: "assistant" as const,
-        content: stepsResponse.data.response
+        content: stepsResponse.data.response 
       };
 
       // Persist assistant message
@@ -290,7 +286,7 @@ export default function Workspace() {
         const newSteps = parseXml(stepsResponse.data.response).map((x, idx) => ({
           ...x,
           id: offset + idx + 1,
-          status: 'pending' as 'pending'
+          status: 'pending' as const
         }));
         return [...s, ...newSteps];
       });
@@ -336,7 +332,6 @@ export default function Workspace() {
   useEffect(() => {
     const persistFiles = async () => {
       if (!workspaceConversationId || files.length === 0) return;
-      // Flatten tree into files array
       const flat: { name: string; path: string; content: string; type: string }[] = [];
       const walk = (items: FileItem[]) => {
         items.forEach(it => {
@@ -359,7 +354,6 @@ export default function Workspace() {
       }
     };
     persistFiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files, workspaceConversationId]);
 
   return (
@@ -398,7 +392,7 @@ export default function Workspace() {
                   value={userPrompt} 
                   onChange={(e) => setUserPrompt(e.target.value)}
                   placeholder="Ask something..."
-                  className="w-full rounded bg-muted px-3 py-2 text-sm text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  className="w-full md:h-[80px] lg:h-[100px] rounded bg-muted px-3 py-2 text-sm text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   rows={2}
                 />
                 <button 

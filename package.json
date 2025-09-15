@@ -22,5 +22,9 @@
     "agent",
     "history",
     "fe"
-  ]
+  ],
+  "dependencies": {
+    "@types/express-rate-limit": "^6.0.2",
+    "express-rate-limit": "^8.1.0"
+  }
 }

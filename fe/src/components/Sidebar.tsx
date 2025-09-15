@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Plus, MessageCircle, Trash2 } from "lucide-react"
 import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -35,6 +36,7 @@ export function AppSidebar() {
         setActiveConversationId(data[0].id)
       }
       setError(null)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       setError("Failed to load history")
     } finally {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Code2, Plus, Trash2, FileText, Calendar } from 'lucide-react';
 import { BACKEND_URL2 } from '@/lib/config';
 import {
@@ -45,7 +45,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Fetch workspace conversations
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${BACKEND_URL2}/api/workspace/history/${userId}`);
@@ -60,13 +60,13 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  },[userId]);
 
   useEffect(() => {
     if (userId) {
       fetchConversations();
     }
-  }, [userId]);
+  }, [userId, fetchConversations]);
 
   const handleDeleteConversation = async (conversationId: string, event: React.MouseEvent) => {
     event.stopPropagation();
