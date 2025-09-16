@@ -17,7 +17,6 @@ export function useWebContainer() {
             setIsLoading(true);
             setError(null);
             
-            // Check if WebContainer is supported
             if (typeof window === 'undefined') {
                 throw new Error('WebContainer can only run in browser environment');
             }
@@ -26,7 +25,6 @@ export function useWebContainer() {
                 throw new Error('WebContainer is not supported in this environment');
             }
 
-            // If already booted, return existing instance
             if (globalWebContainer) {
                 console.log('Using existing WebContainer instance');
                 if (mountedRef.current) {
@@ -35,7 +33,6 @@ export function useWebContainer() {
                 return;
             }
 
-            // If currently booting, wait for existing boot process
             if (isBootingGlobal && bootPromise) {
                 console.log('Waiting for existing WebContainer boot process');
                 const instance = await bootPromise;
@@ -45,7 +42,6 @@ export function useWebContainer() {
                 return;
             }
 
-            // Start new boot process
             isBootingGlobal = true;
             console.log('Booting new WebContainer instance');
             
@@ -73,7 +69,6 @@ export function useWebContainer() {
         }
     }, []);
 
-    // Cleanup function to reset global state (use with caution)
     const resetWebContainer = useCallback(async () => {
         try {
             if (globalWebContainer) {
@@ -97,7 +92,6 @@ export function useWebContainer() {
         };
     }, [initWebContainer]);
 
-    // Global cleanup on window unload (optional)
     useEffect(() => {
         const handleBeforeUnload = () => {
             if (globalWebContainer) {
@@ -118,6 +112,6 @@ export function useWebContainer() {
         isLoading, 
         error,
         reinitialize: initWebContainer,
-        resetWebContainer // Use this only if you need to completely reset
+        resetWebContainer
     };
 }
