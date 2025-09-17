@@ -1,135 +1,65 @@
-# Turborepo starter
+#  Same.dev — AI-Powered Website Builder
 
-This Turborepo starter is maintained by the Turborepo core team.
+Same.dev is an **AI-powered full-stack website builder** inspired by platforms like [bolt.new](https://bolt.new).  
+With just a **prompt**, it can generate a complete project end-to-end — including the frontend, backend, and supporting utilities.  
 
-## Using this example
+The goal of Same.dev is to **make software development as simple as describing what you want**.  
+Whether you need a landing page, a dashboard, or a backend service, Same.dev builds the entire project inside a **monorepo** with a clean and scalable architecture.  
 
-Run the following command:
+---
+## 🎥 Demo Video
 
-```sh
-npx create-turbo@latest
-```
+[Watch the demo on YouTube](https://drive.google.com/file/d/1tzibb_fsc_nQXfgVQtwsXtnTHII6jiMT/view)
 
-## What's inside?
 
-This Turborepo includes the following packages/apps:
 
-### Apps and Packages
+## Introduction
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+Modern web development often requires stitching together multiple tools:
+- A **frontend framework** (like React/Next.js)  
+- A **backend runtime** (like Node.js or Bun)  
+- A **state management system**  
+- A **database layer**  
+- Shared utilities and build tooling  
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+This can be overwhelming, especially for rapid prototyping or when you just want to get something running fast.
 
-### Utilities
+**Same.dev solves this problem** by combining:
+- **AI-driven code generation** → describe your project in plain English, and let the system scaffold the entire app.  
+- **Monorepo architecture with Turborepo** → keeps frontend, backend, and shared packages in one place.  
+- **Next.js frontend** → delivers a production-ready, SSR-enabled UI.  
+- **Bun-powered backend services** → provides ultra-fast execution for APIs and background tasks.  
+- **History tracking** → every generated project is stored and can be revisited later.  
 
-This Turborepo has some additional tools already setup for you:
+With these pieces, Same.dev provides a **developer-first experience**, enabling both beginners and professionals to build and iterate on apps faster than ever.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+---
 
-### Build
+## 📂 Monorepo Structure
+same.dev/
+│── .turbo/ # Turborepo build cache
+│── agent/ # Backend service (AI Agent that generates code/projects)
+│── fe/ # Next.js frontend (user-facing interface)
+│── history/ # Backend service (stores project history/persistence)
+│── packages/ # Shared utilities, types, and configurations
+│── .gitignore # Git ignore rules
+│── .npmrc # npm registry config
+│── bun.lock # Bun lockfile
+│── package.json # Root package file
+│── README.md # Project documentation
+│── turbo.json # Turborepo configuration
 
-To build all apps and packages, run the following command:
 
-```
-cd my-turborepo
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
+---
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+##  Tech Stack
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+- **Monorepo Tooling:** [Turborepo](https://turbo.build/repo)  
+- **Frontend:** [Next.js](https://nextjs.org/) with App Router  
+- **Backend Runtime:** [Bun](https://bun.sh/) (fast alternative to Node.js)  
+- **Language:** TypeScript  
+- **Package Manager:** Bun + npm  
+- **AI Integration:** Custom AI Agent service for project scaffolding
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+---
