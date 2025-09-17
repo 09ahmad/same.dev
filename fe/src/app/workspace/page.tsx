@@ -49,6 +49,7 @@ const WorkspaceContent = React.memo(function WorkspaceContent() {
   const [userPrompt, setUserPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [templateSet, setTemplateSet] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
 
   const {
     webcontainer,
@@ -523,12 +524,26 @@ const WorkspaceContent = React.memo(function WorkspaceContent() {
             >
               Code
             </button>
+            
+            <div className="flex items-center justify-between">
             <button
               className={`px-4 py-2 font-semibold focus:outline-none ${activeTab === "preview" ? "bg-card text-primary" : "text-muted-foreground"}`}
               onClick={() => setActiveTab("preview")}
             >
               Preview
             </button>
+           <button onClick={()=>{
+             if(previewUrl){
+              const proxyUrl = `/api/preview-proxy?url=${encodeURIComponent(previewUrl)}`;
+              window.open(proxyUrl, '_blank');
+            }
+          }} disabled={!previewUrl} className={!previewUrl ? "opacity-50 cursor-not-allowed" : ""} >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"  className="size-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
+              </svg>
+          </button>
+            </div>
+
             {/* Download Button */}
             {activeTab === "code" && (
               <button
@@ -561,7 +576,7 @@ const WorkspaceContent = React.memo(function WorkspaceContent() {
             )}
             {activeTab === "preview" && webcontainer && (
               <div className="flex-1 bg-card rounded-xl border border-border shadow-lg p-4">
-                <PreviewPane webContainer={webcontainer} files={files} />
+                <PreviewPane webContainer={webcontainer} files={files} onUrlReady={setPreviewUrl}  />
               </div>
             )}
           </div>

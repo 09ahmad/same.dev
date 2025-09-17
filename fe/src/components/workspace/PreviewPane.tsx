@@ -5,11 +5,13 @@ import stripAnsi from "strip-ansi";
 interface PreviewFrameProps {
   files: any;
   webContainer: WebContainer;
+  onUrlReady?:(url: string) => void; 
 }
 
 const PreviewPane = React.memo(function PreviewPane({
   files,
   webContainer,
+  onUrlReady
 }: PreviewFrameProps) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +53,7 @@ const PreviewPane = React.memo(function PreviewPane({
           console.log("Server ready:", { port, url });
           setUrl(url);
           setIsLoading(false);
+          onUrlReady?.(url); 
         });
       } catch (err) {
         console.error("Preview initialization failed:", err);
