@@ -293,5 +293,5 @@ app.get("/api/health", (req: Request, res: Response) => {
 
 // Start server
 app.listen(8081, () => {
-  console.log(`Unified backend running on port 8081`);
+  console.log(`Backend running on port 8081`);
 });

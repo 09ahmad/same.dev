@@ -1,8 +1,12 @@
 {
   "extends":"@repo/typescript-config/base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "allowJs": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "forceConsistentCasingInFileNames": true, 
+    "strict": true,                           
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowJs": true
   }
 }
