@@ -68,7 +68,6 @@ const WorkspaceContent = React.memo(function WorkspaceContent() {
   const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Process steps and update files (fixed path handling)
   useEffect(() => {
     let originalFiles = [...files];
     let updateHappened = false;

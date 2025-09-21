@@ -74,3 +74,4 @@ export async function fetchAllConversations(userId: string) {
 	if (!res.ok) throw new Error("Failed to fetch conversations");
 	return res.json() as Promise<Conversation[]>;
 } 
+

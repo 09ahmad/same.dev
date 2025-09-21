@@ -1,0 +1,45 @@
+version: "3.8"
+services: 
+   agent:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    
+    ports:
+      - 8080:8080
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - PORT=${PORT}
+    networks:
+      - user_project
+   history:
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile.history
+    ports: 
+     - 8081:8081
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GITHUB_ID=${GITHUB_ID}
+      - GITHUB_SECRET=${GITHUB_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+    networks:
+      - user_project
+
+   frontend: 
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports: 
+      - 3000:3000
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - user_project
+
+networks:
+  user_project:

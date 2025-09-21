@@ -6,7 +6,8 @@
   "scripts": {
   "build": "bun build ./src/index.ts --outdir dist --target bun",
   "start": "bun run dist/index.js",
-  "dev": "bun ./src/index.ts"
+  "dev": "bun ./src/index.ts",
+  "generate:db":"cd .. && cd packages/db && bunx prisma generate && cd ../.."
 },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
