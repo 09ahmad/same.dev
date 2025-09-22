@@ -11,7 +11,8 @@
     "build:frontend":"cd fe && bun run build",
     "start:frontend":"cd fe && bun run dev",
     "start:agent":"cd agent && bun run dev",
-    "start:history":"cd history && bun run dev"
+    "start:history":"cd history && bun run dev",
+    "start:everything":"bun generate:db && bun build:frontend && bun start:frontend && bun start:agent && bun start:history"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

@@ -1,0 +1,78 @@
+name: Deploy Monorepo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GITHUB_ID: ${{ secrets.GITHUB_ID }}
+      GITHUB_SECRET: ${{ secrets.GITHUB_SECRET }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+      PORT: ${{ secrets.PORT }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Agent service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.agent
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/agent:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/agent:${{ github.sha }}
+
+      - name: Build and push History service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.history
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/history:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/history:${{ github.sha }}
+
+      - name: Build and push Frontend service
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /path/to/your/app
+            docker-compose pull
+            docker-compose up -d
